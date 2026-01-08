@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Word Puzzle - 趣味探索 (iPad适配版)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-color: #FFF3E0;
+    --primary-color: #7B61FF;
+    --primary-dark: #5E4AD3;
+    --text-brown: #333333;
+    --item-height: 52px;
+    --item-min-width: 110px;
+    --item-radius: 16px;
+    --current-theme: #7B61FF; 
+}
+
+/* --- iPad / 平板 专属优化 --- */
+@media (min-width: 768px) {
+    :root {
+        --item-height: 68px;      /* 加大卡片高度 */
+        --item-min-width: 140px;  /* 加宽卡片 */
+        --item-radius: 20px;
+    }
+    .app-title { font-size: 4.5rem !important; }
+    .word-card { font-size: 1.5rem !important; } /* 加大字体 */
+    .game-board { max-width: 95% !important; padding: 30px !important; }
+    .scene-wrapper { max-height: 60vh !important; } /* 增加场景显示区域 */
+    .word-bank { height: 180px !important; gap: 20px !important; }
+}
+
+body {
+    font-family: 'Varela Round', 'YouYuan', '幼圆', 'Microsoft YaHei', sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none; /* iOS Safari */
+    color: var(--text-brown);
+    /* 防止iOS点击高亮背景 */
+    -webkit-tap-highlight-color: transparent;
+}
+
+.hidden { display: none !important; }
+.fade-in { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+@keyframes popIn {
+    0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+#home-view {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 20px 40px 20px; 
+}
+
+.header-section {
+    text-align: center;
+    margin-bottom: 30px; 
+    margin-top: 20px;
+    position: relative;
+    animation: float 4s ease-in-out infinite;
+}
+
+.app-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3.2rem;
+    color: var(--primary-color);
+    margin-bottom: 16px;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+.total-star-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #FFF;
+    padding: 0 28px;
+    height: 48px;
+    border-radius: 50px;
+    box-shadow: 0 6px 0 #FFE0B2, 0 10px 10px rgba(0,0,0,0.1);
+    gap: 12px;
+    border: 3px solid #FFCC80;
+}
+
+.total-star-icon { width: 34px; height: 34px; fill: #FFD700; overflow: visible; display: block; }
+.total-star-count { font-size: 1.8rem; font-weight: 900; color: #F57F17; position: relative; top: 2px; }
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+    padding-bottom: 40px;
+}
+
+.level-card {
+    background: white;
+    border-radius: 28px;
+    cursor: pointer;
+    box-shadow: 0 8px 0 #E0E0E0, 0 12px 20px rgba(0,0,0,0.1);
+    transition: transform 0.1s;
+    border: 3px solid #FFF;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+}
+.level-card:active { transform: scale(0.98); }
+
+.card-header-bg {
+    background-color: var(--level-bg-alpha);
+    padding: 20px 24px 12px 24px;
+    border-bottom: 2px dashed rgba(0,0,0,0.05);
+}
+
+.card-header-row { display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-size: 1.6rem; font-weight: 900; color: var(--text-brown); margin: 0; }
+.card-tag {
+    font-size: 0.9rem; padding: 6px 14px; border-radius: 20px; font-weight: 600;
+    background-color: #FFF; color: var(--level-color);
+}
+.card-body { padding: 15px 24px 20px 24px; display: flex; flex-direction: column; gap: 15px; }
+.preview-words {
+    font-size: 1rem; color: #90A4AE; font-weight: 600;
+    background: #F5F7F8; padding: 8px 12px; border-radius: 12px;
+}
+.card-footer { display: flex; justify-content: space-between; align-items: center; }
+.card-stars { display: flex; gap: 5px; }
+.rounded-star { width: 28px; height: 28px; fill: #ECEFF1; overflow: visible; }
+.rounded-star.earned { fill: #FFD700; filter: drop-shadow(0 2px 0 #F9A825); }
+.play-icon {
+    width: 36px; height: 36px; background: var(--level-color);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; 
+}
+
+/* --- 游戏界面 --- */
+#game-view {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: var(--bg-color);
+    z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0; overflow: hidden;
+}
+
+.game-header {
+    width: 90%; max-width: 950px; flex-shrink: 0;
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+}
+
+.btn-3d {
+    border: none; outline: none; cursor: pointer;
+    font-family: inherit; font-weight: 800;
+    transition: all 0.1s; position: relative; user-select: none;
+}
+.btn-3d:active { transform: translateY(4px) !important; box-shadow: 0 0 0 transparent !important; }
+
+.back-btn {
+    background: #FFF; padding: 10px 24px; border-radius: 50px;
+    color: #555; font-size: 1.1rem;
+    box-shadow: 0 5px 0 #CFD8DC, 0 10px 10px rgba(0,0,0,0.1);
+    display: flex; align-items: center; gap: 8px; border: 2px solid #ECEFF1;
+}
+
+.current-level-title {
+    font-size: 2.2rem; font-weight: 900; 
+    color: var(--text-brown) !important;
+    text-shadow: 2px 2px 0 #FFF;
+}
+
+.game-board {
+    position: relative; background: #FFF; padding: 20px;
+    border-radius: 36px;
+    box-shadow: 0 15px 0 rgba(0,0,0,0.05), 0 30px 50px rgba(0,0,0,0.1);
+    width: 90%; max-width: 950px; max-height: 90vh;
+    display: flex; flex-direction: column; align-items: center;
+    border: 6px solid #FFCC80;
+    overflow: hidden;
+}
+
+.scene-wrapper {
+    position: relative; width: 100%; border-radius: 24px; overflow: hidden;
+    background: #F4F8FB; aspect-ratio: 16/9;
+    max-height: 52vh; 
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.05); margin-bottom: 20px;
+    border: 3px solid #ECEFF1;
+}
+
+.scene-image { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.hint-btn {
+    position: absolute; top: 20px; right: 20px;
+    background: #FFF; border: 3px solid #FFCDD2;
+    border-radius: 50px; padding: 8px 20px;
+    color: #E57373; font-size: 1rem;
+    box-shadow: 0 4px 0 #FFCDD2; z-index: 20;
+    display: flex; align-items: center; gap: 6px;
+}
+
+/* 目标框 */
+.drop-target {
+    position: absolute; transform: translate(-50%, -50%);
+    min-width: var(--item-min-width); height: var(--item-height);
+    background: rgba(0, 0, 0, 0.1);
+    border: 3px dashed rgba(255,255,255,0.8);
+    border-radius: var(--item-radius);
+    display: flex; justify-content: center; align-items: center;
+    transition: all 0.2s; z-index: 10; box-sizing: border-box;
+}
+.drop-target::after {
+    content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    width: 8px; height: 8px; background: #FFF; border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); margin-top: 8px;
+    border: 2px solid var(--current-theme);
+}
+.drop-target.hovered {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%) scale(1.1);
+    border-color: #FFF;
+    box-shadow: 0 0 25px rgba(255,255,255,0.8);
+}
+.drop-target.filled { border: none !important; background: transparent !important; }
+.drop-target.filled::after { display: none; }
+
+/* 词库与卡片 */
+.word-bank {
+    display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
+    padding: 10px; width: 100%; height: 160px; 
+    align-content: flex-start; overflow-y: auto;
+    /* iPad滑动优化 */
+    -webkit-overflow-scrolling: touch; 
+}
+
+.word-card {
+    background: white;
+    min-width: var(--item-min-width); height: var(--item-height);
+    padding: 0 20px; box-sizing: border-box;
+    border-radius: var(--item-radius);
+    display: flex; justify-content: center; align-items: center;
+    font-weight: 700; font-size: 1.2rem; color: #546E7A;
+    border: 2px solid #ECEFF1;
+    border-bottom-width: 4px; /* 加厚底部，更有立体感 */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.1s;
+    cursor: grab; position: relative;
+    user-select: none;
+    
+    /* 关键：防止iPad触摸时页面滚动 */
+    touch-action: none; 
+    z-index: 50;
+}
+
+.word-card::before {
+    content: ''; display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; background-color: var(--current-theme);
+    margin-right: 8px;
+}
+
+/* 拖拽时的样式（针对Touch） */
+.word-card.dragging {
+    position: fixed; /* 浮动在最上层 */
+    opacity: 0.9;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    transform: scale(1.1) !important;
+    pointer-events: none; /* 让触摸事件穿透到下方的drop-target */
+    z-index: 9999;
+}
+
+.word-card.placed {
+    cursor: default; width: 100%; height: 100%;
+    background: var(--current-theme);
+    color: white; border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+    text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    animation: jellyBounce 0.5s;
+    border-radius: var(--item-radius);
+    font-size: 1.4rem;
+}
+.word-card.placed::before { display: none; }
+
+@keyframes jellyBounce { 0% { transform: scale(0.8); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@keyframes pulseTarget { 50% { transform: translate(-50%, -50%) scale(1.2); border-color: #FF5252; } }
+@keyframes pulseCard { 50% { transform: scale(1.1); background-color: #FFEBEE; } }
+@keyframes wrongShake { 0%, 100% { transform: translate(-50%, -50%); } 20%, 60% { transform: translate(-55%, -50%); } 40%, 80% { transform: translate(-45%, -50%); } }
+
+.drop-target.hint-target { animation: pulseTarget 1s infinite; background: rgba(255, 255, 255, 0.5) !important; }
+.word-card.hint-target { animation: pulseCard 1s infinite; }
+.wrong-shake { animation: wrongShake 0.4s; border-color: #FF5252 !important; }
+
+/* Modal 样式保持不变 */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
+    display: none; justify-content: center; align-items: center; z-index: 10000;
+}
+.modal-card {
+    background: #FFF; padding: 40px; border-radius: 40px; text-align: center;
+    max-width: 420px; width: 90%;
+    box-shadow: 0 20px 0 rgba(0,0,0,0.1);
+    animation: popIn 0.5s;
+    position: relative;
+    display: flex; flex-direction: column;
+}
+.modal-card::before {
+    content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 600px; height: 600px; background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+    z-index: -1; pointer-events: none;
+}
+.star-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
+.star-box { width: 80px; height: 80px; opacity: 1; transform: scale(1); transition: all 0.3s; }
+.star-svg { width: 100%; height: 100%; fill: #ECEFF1; overflow: visible; }
+.star-box.active .star-svg { fill: #FFD700; filter: drop-shadow(0 4px 0 #F57F17); }
+.star-box.active { animation: popIn 0.5s; }
+.modal-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+.btn-primary { background: var(--primary-color); color: white; padding: 14px 30px; border-radius: 50px; font-size: 1.2rem; box-shadow: 0 6px 0 var(--primary-dark); }
+.btn-secondary { background: #CFD8DC; color: #546E7A; padding: 14px 30px; border-radius: 50px; font-size: 1.2rem; box-shadow: 0 6px 0 #B0BEC5; }
+.level-word-list { background: #F4F8FB; border-radius: 20px; padding: 15px 20px; margin: 10px 0 15px 0; max-height: 180px; overflow-y: auto; text-align: left; }
+.word-list-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #DEE4E7; font-size: 1.05rem; }
+.word-en { font-weight: 800; color: var(--primary-color); }
+.word-cn { font-weight: 500; color: #78909C; }
+
+</style>
+</head>
+<body>
+
+<div id="home-view" class="fade-in">
+    <div class="header-section">
+        <div class="app-title">Word Puzzle</div>
+        <div class="total-star-badge">
+            <svg class="total-star-icon" viewBox="-2 -2 28 28"><path d="M12,2.5c1.1,0,2.1,0.6,2.5,1.6l2.6,5.9l6.4,0.6c1.1,0.1,1.9,1.1,1.9,2.2c0,0.5-0.2,1-0.6,1.4l-4.8,4.4l1.4,6.3 c0.3,1.1-0.5,2.1-1.6,2.1c-0.4,0-0.8-0.1-1.2-0.3L12,23.5l-5.6,3.2c-1,0.6-2.2,0.2-2.8-0.8c-0.2-0.4-0.3-0.8-0.3-1.2l1.4-6.3 L0.3,14.1c-0.8-0.8-0.8-2,0-2.8c0.4-0.4,0.8-0.6,1.3-0.6l6.4-0.6l2.6-5.9C10.9,3.1,11.4,2.5,12,2.5z" /><circle cx="16" cy="9" r="2" fill="white" opacity="0.6"/></svg>
+            <span id="total-stars-count" class="total-star-count">0</span>
+        </div>
+    </div>
+    <div class="level-grid" id="level-grid"></div>
+</div>
+
+<div id="game-view" class="hidden">
+    <header class="game-header">
+        <button class="back-btn btn-3d" onclick="goHome()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> 返回
+        </button>
+        <div class="current-level-title" id="level-title-display">场景名称</div>
+        <div style="width: 80px;"></div> 
+    </header>
+
+    <main class="game-board">
+        <button class="hint-btn btn-3d" onclick="useHint()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548 5.474a3 3 0 0 1-2.988 2.986h0a3 3 0 0 1-2.988-2.986l-.548-5.474z"/></svg> 提示
+        </button>
+        <div class="scene-wrapper">
+            <img src="" id="game-image" class="scene-image" alt="Scene">
+            <div id="drop-layer"></div>
+        </div>
+        <div class="word-bank" id="word-bank"></div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="win-modal">
+    <div class="modal-card">
+        <div class="star-container">
+            <div class="star-box" id="star-1"><svg class="star-svg" viewBox="-2 -2 28 28"><path d="M12,2.5c1.1,0,2.1,0.6,2.5,1.6l2.6,5.9l6.4,0.6c1.1,0.1,1.9,1.1,1.9,2.2c0,0.5-0.2,1-0.6,1.4l-4.8,4.4l1.4,6.3 c0.3,1.1-0.5,2.1-1.6,2.1c-0.4,0-0.8-0.1-1.2-0.3L12,23.5l-5.6,3.2c-1,0.6-2.2,0.2-2.8-0.8c-0.2-0.4-0.3-0.8-0.3-1.2l1.4-6.3 L0.3,14.1c-0.8-0.8-0.8-2,0-2.8c0.4-0.4,0.8-0.6,1.3-0.6l6.4-0.6l2.6-5.9C10.9,3.1,11.4,2.5,12,2.5z"/><circle cx="16" cy="9" r="2" fill="white" opacity="0.6"/></svg></div>
+            <div class="star-box" id="star-2"><svg class="star-svg" viewBox="-2 -2 28 28"><path d="M12,2.5c1.1,0,2.1,0.6,2.5,1.6l2.6,5.9l6.4,0.6c1.1,0.1,1.9,1.1,1.9,2.2c0,0.5-0.2,1-0.6,1.4l-4.8,4.4l1.4,6.3 c0.3,1.1-0.5,2.1-1.6,2.1c-0.4,0-0.8-0.1-1.2-0.3L12,23.5l-5.6,3.2c-1,0.6-2.2,0.2-2.8-0.8c-0.2-0.4-0.3-0.8-0.3-1.2l1.4-6.3 L0.3,14.1c-0.8-0.8-0.8-2,0-2.8c0.4-0.4,0.8-0.6,1.3-0.6l6.4-0.6l2.6-5.9C10.9,3.1,11.4,2.5,12,2.5z"/><circle cx="16" cy="9" r="2" fill="white" opacity="0.6"/></svg></div>
+            <div class="star-box" id="star-3"><svg class="star-svg" viewBox="-2 -2 28 28"><path d="M12,2.5c1.1,0,2.1,0.6,2.5,1.6l2.6,5.9l6.4,0.6c1.1,0.1,1.9,1.1,1.9,2.2c0,0.5-0.2,1-0.6,1.4l-4.8,4.4l1.4,6.3 c0.3,1.1-0.5,2.1-1.6,2.1c-0.4,0-0.8-0.1-1.2-0.3L12,23.5l-5.6,3.2c-1,0.6-2.2,0.2-2.8-0.8c-0.2-0.4-0.3-0.8-0.3-1.2l1.4-6.3 L0.3,14.1c-0.8-0.8-0.8-2,0-2.8c0.4-0.4,0.8-0.6,1.3-0.6l6.4-0.6l2.6-5.9C10.9,3.1,11.4,2.5,12,2.5z"/><circle cx="16" cy="9" r="2" fill="white" opacity="0.6"/></svg></div>
+        </div>
+        
+        <h2 style="font-size: 2.2rem; color: var(--primary-color); margin: 0 0 10px 0; font-weight:900;" id="modal-heading">闯关成功!</h2>
+        <p style="color:#90A4AE; font: weight 500px; margin: 0 0 15px 0; font-size: 1.1rem;" id="modal-msg">你真是个小天才！</p>
+        <div id="level-word-list" class="level-word-list"></div>
+        <div class="modal-buttons">
+            <button class="btn-3d btn-secondary" onclick="goHome()">选关</button>
+            <button class="btn-3d btn-primary" onclick="nextLevel()">下一关</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const IMG_EXT = '.png';
+const ROUNDED_STAR_PATH = "M12,2.5c1.1,0,2.1,0.6,2.5,1.6l2.6,5.9l6.4,0.6c1.1,0.1,1.9,1.1,1.9,2.2c0,0.5-0.2,1-0.6,1.4l-4.8,4.4l1.4,6.3 c0.3,1.1-0.5,2.1-1.6,2.1c-0.4,0-0.8-0.1-1.2-0.3L12,23.5l-5.6,3.2c-1,0.6-2.2,0.2-2.8-0.8c-0.2-0.4-0.3-0.8-0.3-1.2l1.4-6.3 L0.3,14.1c-0.8-0.8-0.8-2,0-2.8c0.4-0.4,0.8-0.6,1.3-0.6l6.4-0.6l2.6-5.9C10.9,3.1,11.4,2.5,12,2.5z";
+const HIGHLIGHT_CIRCLE = '<circle cx="16" cy="9" r="2" fill="white" opacity="0.6"/>';
+
+const levels = {
+    insects: { name: '微观世界', theme: '奇妙昆虫', img: `insects${IMG_EXT}`, color: '#AED581', items: [
+       { id: 'lad', word: 'Ladybug', cn: '瓢虫', top: '40%', left: '15%' },
+        { id: 'but', word: 'Butterfly', cn: '蝴蝶', top: '30%', left: '50%' },
+        { id: 'bee', word: 'Bee', cn: '蜜蜂', top: '35%', left: '75%' },
+        { id: 'ant', word: 'Ant', cn: '蚂蚁', top: '50%', left: '35%' },
+         { id: 'dra', word: 'Dragonfly', cn: '蜻蜓', top: '50%', left: '65%' },
+        { id: 'man', word: 'Mantis', cn: '螳螂', top: '65%', left: '85%' },
+        { id: 'spi', word: 'Spider', cn: '蜘蛛', top: '85%', left: '20%' },
+        { id: 'sna', word: 'Snail', cn: '蜗牛', top: '90%', left: '50%' }
+    ]},
+    colors: { name: '色彩启蒙', theme: '多彩颜料', img: `colors${IMG_EXT}`, color: '#7986CB', items: [
+        { id: 'blu', word: 'Blue', cn: '蓝色', top: '20%', left: '25%' },
+        { id: 'yel', word: 'Yellow', cn: '黄色', top: '20%', left: '50%' },
+        { id: 'pur', word: 'Purple', cn: '紫色', top: '20%', left: '75%' },
+        { id: 'red', word: 'Red', cn: '红色', top: '45%', left: '15%' },
+        { id: 'gre', word: 'Green', cn: '绿色', top: '45%', left: '42%' },
+        { id: 'bro', word: 'Brown', cn: '棕色', top: '40%', left: '90%' },
+        { id: 'bla', word: 'Black', cn: '黑色', top: '75%', left: '30%' },
+        { id: 'ora', word: 'Orange', cn: '橙色', top: '70%', left: '65%' },
+        { id: 'whi', word: 'White', cn: '白色', top: '65%', left: '88%' }
+    ]},
+    birds: { name: '天空精灵', theme: '认识鸟类', img: `birds${IMG_EXT}`, color: '#4DD0E1', items: [
+        { id: 'spa', word: 'Sparrow', cn: '麻雀', top: '20%', left: '15%' },
+        { id: 'pig', word: 'Pigeon', cn: '鸽子', top: '20%', left: '40%' },
+        { id: 'par', word: 'Parrot', cn: '鹦鹉', top: '25%', left: '60%' },
+        { id: 'hum', word: 'Hummingbird', cn: '蜂鸟', top: '15%', left: '85%' },
+        { id: 'owl', word: 'Owl', cn: '猫头鹰', top: '65%', left: '32%' },
+        { id: 'mag', word: 'Magpie', cn: '喜鹊', top: '65%', left: '50%' },
+        { id: 'woo', word: 'Woodpecker', cn: '啄木鸟', top: '60%', left: '85%' },
+        { id: 'nes', word: 'Nest', cn: '鸟巢', top: '75%', left: '15%' }
+    ]},
+    animals: { name: '热闹动物园', theme: '自然生物', img: `animals${IMG_EXT}`, color: '#FF8A80', items: [
+        { id: 'gir', word: 'Giraffe', cn: '长颈鹿', top: '30%', left: '15%' },
+        { id: 'ele', word: 'Elephant', cn: '大象', top: '35%', left: '45%' },
+        { id: 'lio', word: 'Lion', cn: '狮子', top: '75%', left: '80%' },
+        { id: 'zeb', word: 'Zebra', cn: '斑马', top: '70%', left: '25%' },
+        { id: 'pan', word: 'Panda', cn: '熊猫', top: '85%', left: '50%' },
+        { id: 'mon', word: 'Monkey', cn: '猴子', top: '20%', left: '80%' },
+        { id: 'tre', word: 'Tree', cn: '树', top: '60%', left: '60%' }
+    ]},
+    marine: { name: '奇幻海洋馆', theme: '深海探秘', img: `marine${IMG_EXT}`, color: '#4FC3F7', items: [
+        { id: 'jel', word: 'Jellyfish', cn: '水母', top: '20%', left: '60%' },
+        { id: 'sta', word: 'Starfish', cn: '海星', top: '25%', left: '35%' },
+        { id: 'tur', word: 'Sea Turtle', cn: '海龟', top: '70%', left: '80%' },
+        { id: 'cra', word: 'Crab', cn: '螃蟹', top: '75%', left: '45%' },
+        { id: 'fis', word: 'Fish', cn: '鱼', top: '25%', left: '85%' },
+        { id: 'she', word: 'Shell', cn: '贝壳', top: '25%', left: '15%' },
+        { id: 'cor', word: 'Coral', cn: '珊瑚', top: '75%', left: '15%' }
+    ]},
+    fruit: { name: '鲜美水果摊', theme: '健康饮食', img: `fruit${IMG_EXT}`, color: '#FFD54F', items: [
+        { id: 'wat', word: 'Watermelon', cn: '西瓜', top: '50%', left: '50%' },
+        { id: 'ban', word: 'Banana', cn: '香蕉', top: '85%', left: '14%' },
+        { id: 'ora', word: 'Orange', cn: '橙子', top: '75%', left: '30%' },
+        { id: 'gra', word: 'Grape', cn: '葡萄', top: '65%', left: '70%' },
+        { id: 'app', word: 'Apple', cn: '苹果', top: '50%', left: '15%' },
+        { id: 'pin', word: 'Pineapple', cn: '菠萝', top: '35%', left: '85%' },
+        { id: 'lem', word: 'Lemon', cn: '柠檬', top: '80%', left: '85%' },
+        { id: 'str', word: 'Strawberry', cn: '草莓', top: '80%', left: '50%' }
+    ]},
+    clothes: { name: '时尚穿搭', theme: '日常生活', img: `clothes${IMG_EXT}`, color: '#81C784', items: [
+        { id: 'coa', word: 'Coat', cn: '外套', top: '35%', left: '22%' },
+        { id: 'hat', word: 'Hat', cn: '帽子', top: '25%', left: '48%' },
+        { id: 'sca', word: 'Scarf', cn: '围巾', top: '35%', left: '82%' },
+        { id: 'bag', word: 'Backpack', cn: '背包', top: '70%', left: '60%' },
+        { id: 'mit', word: 'Mittens', cn: '手套', top: '60%', left: '40%' },
+        { id: 'soc', word: 'Socks', cn: '袜子', top: '80%', left: '82%' },
+        { id: 'boo', word: 'Boots', cn: '靴子', top: '85%', left: '30%' }
+    ]},
+    stationery: { name: '小小文具店', theme: '学习用品', img: `stationery${IMG_EXT}`, color: '#AB47BC', items: [
+        { id: 'rul', word: 'Ruler', cn: '直尺', top: '85%', left: '25%' },
+        { id: 'pen', word: 'Pencil', cn: '铅笔', top: '50%', left: '18%' },
+        { id: 'era', word: 'Eraser', cn: '橡皮', top: '70%', left: '8%' },
+        { id: 'not', word: 'Notebook', cn: '笔记本', top: '30%', left: '35%' },
+        { id: 'sci', word: 'Scissors', cn: '剪刀', top: '60%', left: '85%' },
+        { id: 'tap', word: 'Tape', cn: '胶带', top: '87%', left: '82%' },
+        { id: 'hol', word: 'Pen Holder', cn: '笔筒', top: '25%', left: '65%' },
+        { id: 'ope', word: 'Notepad', cn: '记事本', top: '65%', left: '53%' }
+    ]},
+    art: { name: '缤纷画室', theme: '艺术创作', img: `art${IMG_EXT}`, color: '#26C6DA', items: [
+        { id: 'buc', word: 'Bucket', cn: '水桶', top: '30%', left: '22%' },
+        { id: 'pal', word: 'Palette', cn: '调色盘', top: '70%', left: '20%' },
+        { id: 'bru', word: 'Paintbrush', cn: '画笔', top: '65%', left: '40%' },
+        { id: 'apr', word: 'Apron', cn: '围裙', top: '70%', left: '55%' },
+        { id: 'pai', word: 'Paints', cn: '颜料', top: '28%', left: '53%' },
+        { id: 'eas', word: 'Easel', cn: '画架', top: '45%', left: '78%' }
+    ]},
+    vegetables: { name: '健康菜篮子', theme: '田园时光', img: `vegetables${IMG_EXT}`, color: '#FF7043', items: [
+        { id: 'car', word: 'Carrot', cn: '胡萝卜', top: '45%', left: '15%' },
+        { id: 'tom', word: 'Tomato', cn: '西红柿', top: '30%', left: '35%' },
+        { id: 'cuc', word: 'Cucumber', cn: '黄瓜', top: '45%', left: '45%' },
+        { id: 'pot', word: 'Potato', cn: '土豆', top: '82%', left: '38%' },
+        { id: 'pep', word: 'Green Pepper', cn: '青椒', top: '75%', left: '62%' },
+        { id: 'pum', word: 'Pumpkin', cn: '南瓜', top: '60%', left: '85%' },
+        { id: 'gre', word: 'Vegetable', cn: '青菜', top: '20%', left: '75%' }
+    ]},
+    occupations: { name: '职业大百科', theme: '社会分工', img: `occupations${IMG_EXT}`, color: '#5C6BC0', items: [
+        { id: 'doc', word: 'Doctor', cn: '医生', top: '45%', left: '15%' },
+         { id: 'nur', word: 'Nurse', cn: '护士', top: '10%', left: '75%' },
+        { id: 'pol', word: 'Police', cn: '警察', top: '45%', left: '82%' },
+         { id: 'fir', word: 'Firefighter', cn: '消防员', top: '35%', left: '55%' },
+        { id: 'che', word: 'Chef', cn: '厨师', top: '55%', left: '42%' },
+         { id: 'tea', word: 'Teacher', cn: '老师', top: '35%', left: '32%' },
+        { id: 'wor', word: 'Worker', cn: '工人', top: '60%', left: '65%' },
+         { id: 'stu', word: 'Student', cn: '学生', top: '70%', left: '25%' }
+    ]},
+    vehicles: { name: '车水马龙', theme: '交通工具', img: `vehicles${IMG_EXT}`, color: '#EF5350', items: [
+        { id: 'bic', word: 'Bicycle', cn: '自行车', top: '25%', left: '18%' },
+         { id: 'bus', word: 'Bus', cn: '公交车', top: '35%', left: '50%' },
+        { id: 'amb', word: 'Ambulance', cn: '救护车', top: '38%', left: '82%' }, 
+        { id: 'car', word: 'Car', cn: '汽车', top: '60%', left: '20%' },
+        { id: 'mot', word: 'Motorcycle', cn: '摩托车', top: '85%', left: '18%' }, 
+        { id: 'sco', word: 'Scooter', cn: '滑板车', top: '85%', left: '45%' },
+        { id: 'fit', word: 'Fire Truck', cn: '消防车', top: '80%', left: '78%' }
+    ]},
+    trees: { name: '森林植物', theme: '自然探索', img: `trees${IMG_EXT}`, color: '#66BB6A', items: [
+        { id: 'pin', word: 'Pine Tree', cn: '松树', top: '42%', left: '15%' }, 
+        { id: 'map', word: 'Maple Leaf', cn: '枫叶', top: '42%', left: '38%' },
+        { id: 'oak', word: 'Oak Tree', cn: '橡树', top: '42%', left: '62%' }, 
+        { id: 'bir', word: 'Birch', cn: '桦树', top: '40%', left: '85%' },
+        { id: 'sma', word: 'Sapling', cn: '树苗', top: '75%', left: '25%' },
+         { id: 'big', word: 'Big Tree', cn: '大树', top: '75%', left: '50%' },
+        { id: 'gin', word: 'Ginkgo', cn: '银杏', top: '78%', left: '75%' }
+    ]},
+    balls: { name: '球类运动', theme: '健康生活', img: `balls${IMG_EXT}`, color: '#FFA726', items: [
+        { id: 'bas', word: 'Basketball', cn: '篮球', top: '30%', left: '70%' },
+         { id: 'soc', word: 'Soccer', cn: '足球', top: '25%', left: '30%' },
+        { id: 'vol', word: 'Volleyball', cn: '排球', top: '33%', left: '50%' }, 
+        { id: 'ten', word: 'Tennis', cn: '网球', top: '68%', left: '8%' },
+        { id: 'rug', word: 'Rugby', cn: '橄榄球', top: '78%', left: '35%' },
+         { id: 'han', word: 'Handball', cn: '手球', top: '72%', left: '65%' },
+        { id: 'bsb', word: 'Baseball', cn: '棒球', top: '70%', left: '85%' }, 
+        { id: 'bad', word: 'Badminton', cn: '羽毛球', top: '88%', left: '55%' },
+        { id: 'pin', word: 'Ping Pong', cn: '乒乓球', top: '82%', left: '22%' }
+    ]},
+    drinks: { name: '美味饮品', theme: '清凉解渴', img: `drinks${IMG_EXT}`, color: '#FFB74D', items: [
+        { id: 'mil', word: 'Milk', cn: '牛奶', top: '45%', left: '10%' },
+        { id: 'jui', word: 'Juice', cn: '果汁', top: '25%', left: '26%' },
+        { id: 'tea', word: 'Iced Tea', cn: '冰茶', top: '65%', left: '38%' },
+        { id: 'sod', word: 'Soda', cn: '汽水', top: '30%', left: '50%' },
+        { id: 'cof', word: 'Coffee', cn: '咖啡', top: '65%', left: '60%' },
+        { id: 'wat', word: 'Water', cn: '矿泉水', top: '20%', left: '72%' },
+        { id: 'lem', word: 'Lemonade', cn: '柠檬水', top: '45%', left: '88%' }
+    ]},
+    tools: { name: '生活工具', theme: '小小工匠', img: `tools${IMG_EXT}`, color: '#90A4AE', items: [
+        { id: 'ham', word: 'Hammer', cn: '锤子', top: '30%', left: '10%' },
+        { id: 'scr', word: 'Screwdriver', cn: '螺丝刀', top: '55%', left: '23%' },
+        { id: 'saw', word: 'Saw', cn: '锯子', top: '40%', left: '35%' },
+        { id: 'pli', word: 'Pliers', cn: '钳子', top: '35%', left: '48%' },
+        { id: 'rul', word: 'Ruler', cn: '尺子', top: '55%', left: '62%' },
+        { id: 'nai', word: 'Screw', cn: '螺丝', top: '70%', left: '73%' },
+        { id: 'dri', word: 'Drill', cn: '电钻', top: '25%', left: '86%' }
+    ]},
+    furniture: { name: '温馨家园', theme: '日常家具', img: `furniture${IMG_EXT}`, color: '#8D6E63', items: [
+        { id: 'sof', word: 'Sofa', cn: '沙发', top: '45%', left: '20%' },
+        { id: 'lam', word: 'Lamp', cn: '落地灯', top: '25%', left: '46%' },
+        { id: 'tv', word: 'TV', cn: '电视', top: '30%', left: '65%' },
+        { id: 'cab', word: 'Cabinet', cn: '电视柜', top: '55%', left: '65%' },
+        { id: 'boo', word: 'Bookshelf', cn: '书架', top: '20%', left: '88%' },
+        { id: 'tab', word: 'Table', cn: '桌子', top: '70%', left: '45%' },
+        { id: 'rug', word: 'Rug', cn: '地毯', top: '85%', left: '45%' },
+        { id: 'cha', word: 'Chair', cn: '椅子', top: '75%', left: '90%' }
+    ]},
+    flags: { name: '世界国旗', theme: '认识国家', img: `flags${IMG_EXT}`, color: '#EF5350', items: [
+        { id: 'ger', word: 'Germany', cn: '德国', top: '28%', left: '20%' },
+        { id: 'uk', word: 'UK', cn: '英国', top: '28%', left: '50%' },
+        { id: 'usa', word: 'USA', cn: '美国', top: '28%', left: '80%' },
+        { id: 'ind', word: 'India', cn: '印度', top: '58%', left: '20%' },
+        { id: 'chn', word: 'China', cn: '中国', top: '58%', left: '50%' },
+        { id: 'bra', word: 'Brazil', cn: '巴西', top: '58%', left: '80%' },
+        { id: 'can', word: 'Canada', cn: '加拿大', top: '88%', left: '20%' },
+        { id: 'fra', word: 'France', cn: '法国', top: '88%', left: '50%' },
+        { id: 'chi', word: 'Chile', cn: '智利', top: '88%', left: '80%' }
+    ]}
+};
+
+const levelOrder = Object.keys(levels);
+let currentLevelKey = '';
+let mistakeCount = 0;
+let hintUsed = false;
+let audioUnlocked = false; // 标记音频是否已解锁
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+
+function hexToRgba(hex, alpha) {
+    let r = 0, g = 0, b = 0;
+    if (hex.length === 4) {
+        r = parseInt(hex[1] + hex[1], 16);
+        g = parseInt(hex[2] + hex[2], 16);
+        b = parseInt(hex[3] + hex[3], 16);
+    } else if (hex.length === 7) {
+        r = parseInt(hex.substring(1, 3), 16);
+        g = parseInt(hex.substring(3, 5), 16);
+        b = parseInt(hex.substring(5, 7), 16);
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// iOS 音频解锁：在第一次触摸屏幕时恢复 AudioContext
+function unlockAudio() {
+    if (!audioUnlocked && audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+            audioUnlocked = true;
+        });
+    }
+}
+document.addEventListener('touchstart', unlockAudio, { once: true });
+document.addEventListener('click', unlockAudio, { once: true });
+
+function speakWord(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel(); 
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-GB';
+    utterance.rate = 0.75; 
+    utterance.volume = 1;
+    const voices = window.speechSynthesis.getVoices();
+    const gbVoice = voices.find(v => v.lang.includes('GB') || v.lang.includes('UK'));
+    if (gbVoice) utterance.voice = gbVoice;
+    window.speechSynthesis.speak(utterance);
+}
+if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+}
+
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    
+    if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'error') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(80, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'win') {
+        const notes = [400, 500, 600, 800, 1000];
+        notes.forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0.1, now + i*0.1);
+            g.gain.exponentialRampToValueAtTime(0.01, now + i*0.1 + 0.5);
+            o.start(now + i*0.1); o.stop(now + i*0.1 + 0.5);
+        });
+    }
+}
+
+function getStars(level) {
+    const data = JSON.parse(localStorage.getItem('wordGameProgress') || '{}');
+    return data[level] || 0;
+}
+function getAllStarsCount() {
+    const data = JSON.parse(localStorage.getItem('wordGameProgress') || '{}');
+    return Object.values(data).reduce((acc, curr) => acc + curr, 0);
+}
+function saveStars(level, count) {
+    const data = JSON.parse(localStorage.getItem('wordGameProgress') || '{}');
+    if (!data[level] || count > data[level]) {
+        data[level] = count;
+        localStorage.setItem('wordGameProgress', JSON.stringify(data));
+    }
+}
+
+window.onload = () => { renderHome(); };
+
+function renderHome() {
+    const grid = document.getElementById('level-grid');
+    grid.innerHTML = ''; 
+    document.getElementById('total-stars-count').innerText = getAllStarsCount();
+
+    levelOrder.forEach(key => {
+        const level = levels[key];
+        const stars = getStars(key);
+        const wordPreview = level.items.slice(0, 4).map(item => item.word).join(' · ');
+
+        const card = document.createElement('div');
+        card.className = 'level-card';
+        card.style.setProperty('--level-color', level.color);
+        card.style.setProperty('--level-bg-alpha', hexToRgba(level.color, 0.1));
+        card.onclick = () => enterGame(key);
+
+        let starsHtml = '';
+        for(let i=1; i<=3; i++) {
+            starsHtml += `<svg class="rounded-star ${i <= stars ? 'earned' : ''}" viewBox="-2 -2 28 28"><path d="${ROUNDED_STAR_PATH}" />${HIGHLIGHT_CIRCLE}</svg>`;
+        }
+
+        card.innerHTML = `
+            <div class="card-header-bg"><div class="card-header-row"><h3 class="card-title">${level.name}</h3><span class="card-tag">${level.theme}</span></div></div>
+            <div class="card-body"><div class="preview-words">${wordPreview}</div><div class="card-footer"><div class="card-stars">${starsHtml}</div><div class="play-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div></div></div>
+        `;
+        grid.appendChild(card);
+    });
+
+    document.getElementById('home-view').classList.remove('hidden');
+    document.getElementById('game-view').classList.add('hidden');
+    document.getElementById('home-view').classList.add('fade-in');
+    window.scrollTo(0, 0);
+}
+
+function goHome() {
+    document.getElementById('win-modal').style.display = 'none';
+    renderHome();
+}
+
+function enterGame(key) {
+    document.getElementById('home-view').classList.add('hidden');
+    const gameView = document.getElementById('game-view');
+    gameView.classList.remove('hidden');
+    gameView.classList.add('fade-in');
+    loadLevel(key);
+}
+
+function loadLevel(levelKey) {
+    currentLevelKey = levelKey;
+    const data = levels[levelKey];
+    
+    document.documentElement.style.setProperty('--current-theme', data.color);
+    document.documentElement.style.setProperty('--current-theme-alpha', hexToRgba(data.color, 0.4));
+    document.getElementById('level-title-display').textContent = data.name;
+
+    mistakeCount = 0;
+    hintUsed = false;
+    
+    const dropLayer = document.getElementById('drop-layer');
+    const wordBank = document.getElementById('word-bank');
+    const imgEl = document.getElementById('game-image');
+    
+    imgEl.style.opacity = 0;
+    imgEl.src = data.img;
+    imgEl.onload = () => imgEl.style.opacity = 1;
+    imgEl.onerror = () => { imgEl.alt = "图片加载失败: " + data.img; imgEl.style.opacity = 1; };
+
+    dropLayer.innerHTML = '';
+    data.items.forEach(item => {
+        const target = document.createElement('div');
+        target.className = 'drop-target';
+        target.style.top = item.top;
+        target.style.left = item.left;
+        target.dataset.match = item.id;
+        // 保留 PC 拖拽
+        target.addEventListener('dragover', e => { e.preventDefault(); if(!target.classList.contains('filled')) target.classList.add('hovered'); });
+        target.addEventListener('dragleave', () => target.classList.remove('hovered'));
+        target.addEventListener('drop', handleDrop);
+        dropLayer.appendChild(target);
+    });
+
+    wordBank.innerHTML = '';
+    const shuffled = [...data.items].sort(() => Math.random() - 0.5);
+    shuffled.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'word-card';
+        card.draggable = true;
+        card.textContent = item.word;
+        card.id = `word-${item.id}`;
+        card.dataset.id = item.id;
+        card.dataset.themeColor = data.color;
+        if (item.customSpeak) card.dataset.customSpeak = item.customSpeak;
+        
+        // PC 鼠标事件
+        card.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text', item.id);
+            e.dataTransfer.setData('elId', card.id);
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        });
+
+        // 🔴 iPad/Touch 触摸事件支持
+        addTouchLogic(card, item.id);
+        
+        wordBank.appendChild(card);
+    });
+}
+
+// --- iPad 触摸逻辑核心 ---
+function addTouchLogic(card, itemId) {
+    let startX, startY;
+    let initialLeft, initialTop;
+    
+    card.addEventListener('touchstart', function(e) {
+        if(e.touches.length > 1) return; // 忽略多指
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        
+        // 记录原始位置，并将卡片改为 Fixed 定位以实现跟随
+        const rect = card.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        
+        // 视觉反馈
+        card.style.position = 'fixed';
+        card.style.left = initialLeft + 'px';
+        card.style.top = initialTop + 'px';
+        card.style.width = rect.width + 'px'; // 保持宽度防止变形
+        card.classList.add('dragging');
+        
+        // 音频解锁
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }, { passive: false });
+
+    card.addEventListener('touchmove', function(e) {
+        e.preventDefault(); // 防止滚动
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - startX;
+        const deltaY = touch.clientY - startY;
+        
+        card.style.left = (initialLeft + deltaX) + 'px';
+        card.style.top = (initialTop + deltaY) + 'px';
+        
+        // 高亮检测 (Touch没有dragleave/enter，需要手动计算)
+        checkTouchHover(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    card.addEventListener('touchend', function(e) {
+        const touch = e.changedTouches[0];
+        card.classList.remove('dragging');
+        
+        // 隐藏自身以检测下方的元素
+        card.style.display = 'none';
+        let elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        card.style.display = 'flex';
+        
+        const dropTarget = elemBelow ? elemBelow.closest('.drop-target') : null;
+        
+        // 恢复样式，准备判断逻辑
+        card.style.position = '';
+        card.style.left = '';
+        card.style.top = '';
+        card.style.width = '';
+        
+        // 清除所有高亮
+        document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('hovered'));
+
+        if (dropTarget && !dropTarget.classList.contains('filled')) {
+            if (dropTarget.dataset.match === itemId) {
+                // ✅ 正确：模拟 handleDrop
+                playSound('success');
+                finishDrop(dropTarget, card);
+            } else {
+                // ❌ 错误
+                playSound('error');
+                mistakeCount++;
+                dropTarget.classList.add('wrong-shake');
+                setTimeout(() => dropTarget.classList.remove('wrong-shake'), 400);
+            }
+        }
+    });
+}
+
+function checkTouchHover(x, y) {
+    // 性能优化：不用每次move都查DOM，但为了简单起见直接查
+    // 临时隐藏拖拽物，否则 elementFromPoint 永远拿到的是卡片自己
+    const dragged = document.querySelector('.word-card.dragging');
+    if(dragged) dragged.style.visibility = 'hidden';
+    
+    let elem = document.elementFromPoint(x, y);
+    
+    if(dragged) dragged.style.visibility = 'visible';
+    
+    // 清除旧高亮
+    document.querySelectorAll('.drop-target.hovered').forEach(el => el.classList.remove('hovered'));
+    
+    if(elem) {
+        const target = elem.closest('.drop-target');
+        if(target && !target.classList.contains('filled')) {
+            target.classList.add('hovered');
+        }
+    }
+}
+
+// 提取成功的逻辑供 Touch 和 Mouse 共用
+function finishDrop(target, originalCard) {
+    target.classList.add('filled');
+    target.classList.remove('hint-target');
+    
+    const activeCard = document.querySelector('.word-card.hint-target');
+    if(activeCard) activeCard.classList.remove('hint-target');
+    
+    const placedCard = document.createElement('div');
+    placedCard.className = 'word-card placed';
+    
+    const wordText = originalCard.textContent;
+    const customSpeak = originalCard.dataset.customSpeak;
+
+    placedCard.textContent = wordText;
+    const themeColor = originalCard.dataset.themeColor;
+    placedCard.style.backgroundColor = themeColor;
+    placedCard.style.color = (themeColor === '#FFD54F') ? '#333333' : '#FFFFFF';
+    
+    target.innerHTML = '';
+    target.appendChild(placedCard);
+    originalCard.remove();
+    
+    const textToRead = customSpeak || wordText;
+    setTimeout(() => { speakWord(textToRead); }, 1000);
+
+    checkWin();
+}
+
+// 鼠标拖拽逻辑保持不变，调用 finishDrop
+function handleDrop(e) {
+    e.preventDefault();
+    const target = e.currentTarget;
+    target.classList.remove('hovered');
+    if(target.classList.contains('filled')) return;
+
+    const droppedId = e.dataTransfer.getData('text');
+    const elId = e.dataTransfer.getData('elId');
+    const originalCard = document.getElementById(elId);
+
+    if (droppedId === target.dataset.match) {
+        playSound('success');
+        finishDrop(target, originalCard);
+    } else {
+        playSound('error');
+        mistakeCount++;
+        target.classList.add('wrong-shake');
+        setTimeout(() => target.classList.remove('wrong-shake'), 400);
+    }
+}
+
+function useHint() {
+    const emptyTargets = Array.from(document.querySelectorAll('.drop-target:not(.filled)'));
+    if (emptyTargets.length === 0) return;
+    document.querySelectorAll('.hint-target').forEach(el => el.classList.remove('hint-target'));
+    const target = emptyTargets[Math.floor(Math.random() * emptyTargets.length)];
+    const matchId = target.dataset.match;
+    const card = document.querySelector(`.word-bank .word-card[data-id="${matchId}"]`);
+    if (target && card) {
+        hintUsed = true;
+        target.classList.add('hint-target');
+        card.classList.add('hint-target');
+        setTimeout(() => { target.classList.remove('hint-target'); card.classList.remove('hint-target'); }, 2000);
+    }
+}
+
+function checkWin() {
+    const data = levels[currentLevelKey];
+    const totalItems = data.items.length;
+    const filledItems = document.querySelectorAll('.drop-target.filled').length;
+    if (filledItems === totalItems) {
+        setTimeout(() => { playSound('win'); showWinModal(); }, 2500); 
+    }
+}
+
+function showWinModal() {
+    const modal = document.getElementById('win-modal');
+    const stars = [document.getElementById('star-1'), document.getElementById('star-2'), document.getElementById('star-3')];
+    const heading = document.getElementById('modal-heading');
+    const msg = document.getElementById('modal-msg');
+    
+    stars.forEach(s => s.classList.remove('active'));
+    
+    let starCount = 0;
+    if (hintUsed) {
+        starCount = 1; heading.innerText = "完成挑战!"; msg.innerText = "使用了提示，下次试试靠自己！";
+    } else if (mistakeCount === 0) {
+        starCount = 3; heading.innerText = "完美通关!"; msg.innerText = "太棒了！百发百中！";
+    } else if (mistakeCount <= 2) {
+        starCount = 2; heading.innerText = "做得不错!"; msg.innerText = "差点就满分了，加油！";
+    } else {
+        starCount = 1; heading.innerText = "闯关成功!"; msg.innerText = "继续加油，你会更棒的！";
+    }
+
+    saveStars(currentLevelKey, starCount);
+
+    const listContainer = document.getElementById('level-word-list');
+    listContainer.innerHTML = ''; 
+    const currentData = levels[currentLevelKey];
+    if (currentData && currentData.items) {
+        currentData.items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'word-list-item';
+            const cnText = item.cn || ''; 
+            row.innerHTML = `<span class="word-en">${item.word}</span><span class="word-cn">${cnText}</span>`;
+            listContainer.appendChild(row);
+        });
+    }
+
+    modal.style.display = 'flex';
+    for(let i=0; i<starCount; i++) {
+        setTimeout(() => { stars[i].classList.add('active'); }, i * 200 + 300);
+    }
+}
+
+function nextLevel() {
+    document.getElementById('win-modal').style.display = 'none';
+    let currentIndex = levelOrder.indexOf(currentLevelKey);
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= levelOrder.length) {
+        alert("恭喜你，通关了所有场景！");
+        goHome();
+    } else {
+        loadLevel(levelOrder[nextIndex]);
+    }
+}
+</script>
+</body>
+</html>
