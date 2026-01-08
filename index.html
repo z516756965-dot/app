@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Word Puzzle - 修复版</title>
+<title>Word Puzzle - iPad 完美显示版</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
 <style>
@@ -13,34 +13,33 @@
     --primary-dark: #5E4AD3;
     --text-brown: #333333;
     
-    /* 基础尺寸保持原版，不再在iPad上强制加大主页元素 */
+    /* 基础尺寸 */
     --item-height: 52px;
     --item-min-width: 110px;
     --item-radius: 16px;
     --current-theme: #7B61FF; 
 }
 
-/* --- iPad 专属适配（仅针对【游戏内】的操作区域优化，不改主页） --- */
+/* --- iPad 专属适配 --- */
 @media (min-width: 768px) {
-    /* 仅微调游戏内的卡片，方便手指触摸 */
     :root {
         --item-height: 64px;      
         --item-min-width: 130px;
         --item-radius: 18px;
     }
 
-    /* 限制游戏盘最大宽度，防止在 iPad Pro 上太宽难操作 */
+    /* iPad 上增加词库高度，让布局更宽松 */
+    .word-bank { 
+        height: auto !important; 
+        min-height: 180px;
+    }
+    
+    /* 限制游戏盘最大宽度 */
     .game-board { 
-        width: 85% !important; 
+        width: 90% !important; 
         max-width: 850px !important; 
     }
     
-    /* 增加词库高度，方便展示更多单词 */
-    .word-bank { 
-        height: 180px !important; 
-    }
-    
-    /* 修复：主页字体和布局完全不根据屏幕变大而改变，保持原样 */
     .app-title { font-size: 3.2rem !important; }
 }
 
@@ -69,11 +68,11 @@ body {
     50% { transform: translateY(-8px); }
 }
 
-/* --- 主页样式 (保持原版紧凑设计) --- */
+/* --- 主页样式 --- */
 #home-view {
     max-width: 900px;
     margin: 0 auto;
-    padding: 20px 20px 40px 20px; 
+    padding: 20px 20px 60px 20px; 
 }
 
 .header-section {
@@ -111,7 +110,6 @@ body {
 
 .level-grid {
     display: grid;
-    /* 保持响应式 Grid，不强制改变列宽 */
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 25px;
     padding-bottom: 40px;
@@ -155,18 +153,25 @@ body {
     border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; 
 }
 
-/* --- 游戏界面 --- */
+/* --- 游戏界面 (核心修复：允许滚动) --- */
 #game-view {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background-color: var(--bg-color);
     z-index: 100;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 0; overflow: hidden;
+    
+    /* 🔴 核心修改：允许垂直滚动，取消溢出隐藏 */
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
+    
+    /* 布局调整：改为 Flex-Start 顶部对齐，防止垂直居中导致头部被切 */
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 30px 0 60px 0; /* 增加上下内边距，确保可以滚到底 */
 }
 
 .game-header {
     width: 90%; max-width: 950px; flex-shrink: 0;
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+    display: flex; justify-content: space-between; align-items: center; 
+    margin-bottom: 20px;
 }
 
 .btn-3d {
@@ -194,18 +199,22 @@ body {
     border-radius: 36px;
     box-shadow: 0 15px 0 rgba(0,0,0,0.05), 0 30px 50px rgba(0,0,0,0.1);
     width: 90%; max-width: 950px; 
-    /* 移除 max-height，防止高度不够导致图片压缩 */
+    
+    /* 🔴 核心修改：移除 max-height 限制，允许内容撑开高度 */
+    /* max-height: 90vh;  <-- 已删除 */
+    height: auto;
+    
     display: flex; flex-direction: column; align-items: center;
     border: 6px solid #FFCC80;
+    
+    /* 防止底部内容过于贴边 */
+    margin-bottom: 40px; 
 }
 
-/* --- 核心修复：防止图片错位 --- */
 .scene-wrapper {
     position: relative; 
     width: 100%; 
-    /* 强制锁定 16:9 比例，这是防止坐标错位的关键 */
     aspect-ratio: 16 / 9;
-    /* 移除 max-height，让它自然根据宽度缩放 */
     border-radius: 24px; overflow: hidden;
     background: #F4F8FB; 
     box-shadow: inset 0 0 20px rgba(0,0,0,0.05); 
@@ -216,7 +225,6 @@ body {
 .scene-image { 
     width: 100%; 
     height: 100%; 
-    /* 强制填满容器，不留白边，确保坐标绝对准确 */
     object-fit: fill; 
     display: block; 
 }
@@ -232,7 +240,7 @@ body {
 .drop-target {
     position: absolute; transform: translate(-50%, -50%);
     min-width: var(--item-min-width); height: var(--item-height);
-    background: rgba(255, 255, 255, 0.2); /* 稍微增加透明度以便调试 */
+    background: rgba(255, 255, 255, 0.2); 
     border: 2px dashed rgba(255,255,255,0.9);
     border-radius: var(--item-radius);
     display: flex; justify-content: center; align-items: center;
@@ -256,9 +264,11 @@ body {
 /* 词库与卡片 */
 .word-bank {
     display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
-    padding: 10px; width: 100%; height: 160px; 
-    align-content: flex-start; overflow-y: auto;
-    -webkit-overflow-scrolling: touch; 
+    padding: 10px; width: 100%; 
+    /* 允许词库自适应高度 */
+    height: auto; 
+    min-height: 160px;
+    align-content: flex-start;
 }
 
 .word-card {
@@ -405,7 +415,6 @@ const IMG_EXT = '.png';
 const ROUNDED_STAR_PATH = "M12,2.5c1.1,0,2.1,0.6,2.5,1.6l2.6,5.9l6.4,0.6c1.1,0.1,1.9,1.1,1.9,2.2c0,0.5-0.2,1-0.6,1.4l-4.8,4.4l1.4,6.3 c0.3,1.1-0.5,2.1-1.6,2.1c-0.4,0-0.8-0.1-1.2-0.3L12,23.5l-5.6,3.2c-1,0.6-2.2,0.2-2.8-0.8c-0.2-0.4-0.3-0.8-0.3-1.2l1.4-6.3 L0.3,14.1c-0.8-0.8-0.8-2,0-2.8c0.4-0.4,0.8-0.6,1.3-0.6l6.4-0.6l2.6-5.9C10.9,3.1,11.4,2.5,12,2.5z";
 const HIGHLIGHT_CIRCLE = '<circle cx="16" cy="9" r="2" fill="white" opacity="0.6"/>';
 
-// 全局变量防止 iOS 语音对象被回收
 let currentUtterance = null; 
 
 const levels = {
@@ -621,16 +630,15 @@ function speakWord(text) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel(); 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US'; // 建议改为 en-US 兼容性更好
+    utterance.lang = 'en-US'; 
     utterance.rate = 0.75; 
     utterance.volume = 1;
 
-    // 尝试获取更自然的语音
     const voices = window.speechSynthesis.getVoices();
     const voice = voices.find(v => v.lang.includes('US') || v.lang.includes('UK'));
     if (voice) utterance.voice = voice;
     
-    // 🔴 关键修复：防止iOS垃圾回收导致声音中断
+    // 关键修复：防止iOS垃圾回收导致声音中断
     currentUtterance = utterance;
     utterance.onend = () => { currentUtterance = null; };
     
@@ -913,7 +921,6 @@ function finishDrop(target, originalCard) {
     originalCard.remove();
     
     const textToRead = customSpeak || wordText;
-    // 🔴 关键修复：移除 setTimeout 延时，在用户交互链条中立即播放
     speakWord(textToRead); 
 
     checkWin();
