@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Word Puzzle - 趣味探索 (iPad适配版)</title>
+<title>Word Puzzle - 修复版</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
 <style>
@@ -12,24 +12,36 @@
     --primary-color: #7B61FF;
     --primary-dark: #5E4AD3;
     --text-brown: #333333;
+    
+    /* 基础尺寸保持原版，不再在iPad上强制加大主页元素 */
     --item-height: 52px;
     --item-min-width: 110px;
     --item-radius: 16px;
     --current-theme: #7B61FF; 
 }
 
-/* --- iPad / 平板 专属优化 --- */
+/* --- iPad 专属适配（仅针对【游戏内】的操作区域优化，不改主页） --- */
 @media (min-width: 768px) {
+    /* 仅微调游戏内的卡片，方便手指触摸 */
     :root {
-        --item-height: 68px;      /* 加大卡片高度 */
-        --item-min-width: 140px;  /* 加宽卡片 */
-        --item-radius: 20px;
+        --item-height: 64px;      
+        --item-min-width: 130px;
+        --item-radius: 18px;
     }
-    .app-title { font-size: 4.5rem !important; }
-    .word-card { font-size: 1.5rem !important; } /* 加大字体 */
-    .game-board { max-width: 95% !important; padding: 30px !important; }
-    .scene-wrapper { max-height: 60vh !important; } /* 增加场景显示区域 */
-    .word-bank { height: 180px !important; gap: 20px !important; }
+
+    /* 限制游戏盘最大宽度，防止在 iPad Pro 上太宽难操作 */
+    .game-board { 
+        width: 85% !important; 
+        max-width: 850px !important; 
+    }
+    
+    /* 增加词库高度，方便展示更多单词 */
+    .word-bank { 
+        height: 180px !important; 
+    }
+    
+    /* 修复：主页字体和布局完全不根据屏幕变大而改变，保持原样 */
+    .app-title { font-size: 3.2rem !important; }
 }
 
 body {
@@ -41,7 +53,6 @@ body {
     user-select: none;
     -webkit-user-select: none; /* iOS Safari */
     color: var(--text-brown);
-    /* 防止iOS点击高亮背景 */
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -58,6 +69,7 @@ body {
     50% { transform: translateY(-8px); }
 }
 
+/* --- 主页样式 (保持原版紧凑设计) --- */
 #home-view {
     max-width: 900px;
     margin: 0 auto;
@@ -99,6 +111,7 @@ body {
 
 .level-grid {
     display: grid;
+    /* 保持响应式 Grid，不强制改变列宽 */
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 25px;
     padding-bottom: 40px;
@@ -160,13 +173,13 @@ body {
     border: none; outline: none; cursor: pointer;
     font-family: inherit; font-weight: 800;
     transition: all 0.1s; position: relative; user-select: none;
+    background: #FFF; padding: 10px 24px; border-radius: 50px;
+    box-shadow: 0 5px 0 #CFD8DC, 0 10px 10px rgba(0,0,0,0.1);
 }
 .btn-3d:active { transform: translateY(4px) !important; box-shadow: 0 0 0 transparent !important; }
 
 .back-btn {
-    background: #FFF; padding: 10px 24px; border-radius: 50px;
     color: #555; font-size: 1.1rem;
-    box-shadow: 0 5px 0 #CFD8DC, 0 10px 10px rgba(0,0,0,0.1);
     display: flex; align-items: center; gap: 8px; border: 2px solid #ECEFF1;
 }
 
@@ -180,28 +193,38 @@ body {
     position: relative; background: #FFF; padding: 20px;
     border-radius: 36px;
     box-shadow: 0 15px 0 rgba(0,0,0,0.05), 0 30px 50px rgba(0,0,0,0.1);
-    width: 90%; max-width: 950px; max-height: 90vh;
+    width: 90%; max-width: 950px; 
+    /* 移除 max-height，防止高度不够导致图片压缩 */
     display: flex; flex-direction: column; align-items: center;
     border: 6px solid #FFCC80;
-    overflow: hidden;
 }
 
+/* --- 核心修复：防止图片错位 --- */
 .scene-wrapper {
-    position: relative; width: 100%; border-radius: 24px; overflow: hidden;
-    background: #F4F8FB; aspect-ratio: 16/9;
-    max-height: 52vh; 
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.05); margin-bottom: 20px;
+    position: relative; 
+    width: 100%; 
+    /* 强制锁定 16:9 比例，这是防止坐标错位的关键 */
+    aspect-ratio: 16 / 9;
+    /* 移除 max-height，让它自然根据宽度缩放 */
+    border-radius: 24px; overflow: hidden;
+    background: #F4F8FB; 
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.05); 
+    margin-bottom: 20px;
     border: 3px solid #ECEFF1;
 }
 
-.scene-image { width: 100%; height: 100%; object-fit: contain; display: block; }
+.scene-image { 
+    width: 100%; 
+    height: 100%; 
+    /* 强制填满容器，不留白边，确保坐标绝对准确 */
+    object-fit: fill; 
+    display: block; 
+}
 
 .hint-btn {
-    position: absolute; top: 20px; right: 20px;
     background: #FFF; border: 3px solid #FFCDD2;
-    border-radius: 50px; padding: 8px 20px;
     color: #E57373; font-size: 1rem;
-    box-shadow: 0 4px 0 #FFCDD2; z-index: 20;
+    box-shadow: 0 4px 0 #FFCDD2; 
     display: flex; align-items: center; gap: 6px;
 }
 
@@ -209,8 +232,8 @@ body {
 .drop-target {
     position: absolute; transform: translate(-50%, -50%);
     min-width: var(--item-min-width); height: var(--item-height);
-    background: rgba(0, 0, 0, 0.1);
-    border: 3px dashed rgba(255,255,255,0.8);
+    background: rgba(255, 255, 255, 0.2); /* 稍微增加透明度以便调试 */
+    border: 2px dashed rgba(255,255,255,0.9);
     border-radius: var(--item-radius);
     display: flex; justify-content: center; align-items: center;
     transition: all 0.2s; z-index: 10; box-sizing: border-box;
@@ -222,7 +245,7 @@ body {
     border: 2px solid var(--current-theme);
 }
 .drop-target.hovered {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
     transform: translate(-50%, -50%) scale(1.1);
     border-color: #FFF;
     box-shadow: 0 0 25px rgba(255,255,255,0.8);
@@ -235,7 +258,6 @@ body {
     display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
     padding: 10px; width: 100%; height: 160px; 
     align-content: flex-start; overflow-y: auto;
-    /* iPad滑动优化 */
     -webkit-overflow-scrolling: touch; 
 }
 
@@ -247,14 +269,12 @@ body {
     display: flex; justify-content: center; align-items: center;
     font-weight: 700; font-size: 1.2rem; color: #546E7A;
     border: 2px solid #ECEFF1;
-    border-bottom-width: 4px; /* 加厚底部，更有立体感 */
+    border-bottom-width: 4px; 
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     transition: transform 0.1s;
     cursor: grab; position: relative;
     user-select: none;
-    
-    /* 关键：防止iPad触摸时页面滚动 */
-    touch-action: none; 
+    touch-action: none; /* 防止页面滚动 */
     z-index: 50;
 }
 
@@ -264,13 +284,13 @@ body {
     margin-right: 8px;
 }
 
-/* 拖拽时的样式（针对Touch） */
+/* 拖拽时的样式 */
 .word-card.dragging {
-    position: fixed; /* 浮动在最上层 */
+    position: fixed; 
     opacity: 0.9;
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
     transform: scale(1.1) !important;
-    pointer-events: none; /* 让触摸事件穿透到下方的drop-target */
+    pointer-events: none; 
     z-index: 9999;
 }
 
@@ -295,7 +315,7 @@ body {
 .word-card.hint-target { animation: pulseCard 1s infinite; }
 .wrong-shake { animation: wrongShake 0.4s; border-color: #FF5252 !important; }
 
-/* Modal 样式保持不变 */
+/* Modal 样式 */
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
@@ -320,8 +340,8 @@ body {
 .star-box.active .star-svg { fill: #FFD700; filter: drop-shadow(0 4px 0 #F57F17); }
 .star-box.active { animation: popIn 0.5s; }
 .modal-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
-.btn-primary { background: var(--primary-color); color: white; padding: 14px 30px; border-radius: 50px; font-size: 1.2rem; box-shadow: 0 6px 0 var(--primary-dark); }
-.btn-secondary { background: #CFD8DC; color: #546E7A; padding: 14px 30px; border-radius: 50px; font-size: 1.2rem; box-shadow: 0 6px 0 #B0BEC5; }
+.btn-primary { background: var(--primary-color); color: white; border: none; }
+.btn-secondary { background: #CFD8DC; color: #546E7A; }
 .level-word-list { background: #F4F8FB; border-radius: 20px; padding: 15px 20px; margin: 10px 0 15px 0; max-height: 180px; overflow-y: auto; text-align: left; }
 .word-list-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #DEE4E7; font-size: 1.05rem; }
 .word-en { font-weight: 800; color: var(--primary-color); }
@@ -348,13 +368,12 @@ body {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> 返回
         </button>
         <div class="current-level-title" id="level-title-display">场景名称</div>
-        <div style="width: 80px;"></div> 
-    </header>
-
-    <main class="game-board">
         <button class="hint-btn btn-3d" onclick="useHint()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548 5.474a3 3 0 0 1-2.988 2.986h0a3 3 0 0 1-2.988-2.986l-.548-5.474z"/></svg> 提示
         </button>
+    </header>
+
+    <main class="game-board">
         <div class="scene-wrapper">
             <img src="" id="game-image" class="scene-image" alt="Scene">
             <div id="drop-layer"></div>
@@ -385,6 +404,9 @@ body {
 const IMG_EXT = '.png';
 const ROUNDED_STAR_PATH = "M12,2.5c1.1,0,2.1,0.6,2.5,1.6l2.6,5.9l6.4,0.6c1.1,0.1,1.9,1.1,1.9,2.2c0,0.5-0.2,1-0.6,1.4l-4.8,4.4l1.4,6.3 c0.3,1.1-0.5,2.1-1.6,2.1c-0.4,0-0.8-0.1-1.2-0.3L12,23.5l-5.6,3.2c-1,0.6-2.2,0.2-2.8-0.8c-0.2-0.4-0.3-0.8-0.3-1.2l1.4-6.3 L0.3,14.1c-0.8-0.8-0.8-2,0-2.8c0.4-0.4,0.8-0.6,1.3-0.6l6.4-0.6l2.6-5.9C10.9,3.1,11.4,2.5,12,2.5z";
 const HIGHLIGHT_CIRCLE = '<circle cx="16" cy="9" r="2" fill="white" opacity="0.6"/>';
+
+// 全局变量防止 iOS 语音对象被回收
+let currentUtterance = null; 
 
 const levels = {
     insects: { name: '微观世界', theme: '奇妙昆虫', img: `insects${IMG_EXT}`, color: '#AED581', items: [
@@ -566,7 +588,7 @@ const levelOrder = Object.keys(levels);
 let currentLevelKey = '';
 let mistakeCount = 0;
 let hintUsed = false;
-let audioUnlocked = false; // 标记音频是否已解锁
+let audioUnlocked = false; 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
@@ -599,12 +621,19 @@ function speakWord(text) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel(); 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-GB';
+    utterance.lang = 'en-US'; // 建议改为 en-US 兼容性更好
     utterance.rate = 0.75; 
     utterance.volume = 1;
+
+    // 尝试获取更自然的语音
     const voices = window.speechSynthesis.getVoices();
-    const gbVoice = voices.find(v => v.lang.includes('GB') || v.lang.includes('UK'));
-    if (gbVoice) utterance.voice = gbVoice;
+    const voice = voices.find(v => v.lang.includes('US') || v.lang.includes('UK'));
+    if (voice) utterance.voice = voice;
+    
+    // 🔴 关键修复：防止iOS垃圾回收导致声音中断
+    currentUtterance = utterance;
+    utterance.onend = () => { currentUtterance = null; };
+    
     window.speechSynthesis.speak(utterance);
 }
 if (window.speechSynthesis) {
@@ -740,10 +769,11 @@ function loadLevel(levelKey) {
         target.style.top = item.top;
         target.style.left = item.left;
         target.dataset.match = item.id;
-        // 保留 PC 拖拽
+        
         target.addEventListener('dragover', e => { e.preventDefault(); if(!target.classList.contains('filled')) target.classList.add('hovered'); });
         target.addEventListener('dragleave', () => target.classList.remove('hovered'));
         target.addEventListener('drop', handleDrop);
+        
         dropLayer.appendChild(target);
     });
 
@@ -757,51 +787,50 @@ function loadLevel(levelKey) {
         card.id = `word-${item.id}`;
         card.dataset.id = item.id;
         card.dataset.themeColor = data.color;
-        if (item.customSpeak) card.dataset.customSpeak = item.customSpeak;
         
-        // PC 鼠标事件
+        if (item.customSpeak) {
+            card.dataset.customSpeak = item.customSpeak;
+        }
+        
         card.addEventListener('dragstart', e => {
             e.dataTransfer.setData('text', item.id);
             e.dataTransfer.setData('elId', card.id);
             if (audioCtx.state === 'suspended') audioCtx.resume();
         });
-
-        // 🔴 iPad/Touch 触摸事件支持
+        
+        // iPad/Touch 触摸支持
         addTouchLogic(card, item.id);
         
         wordBank.appendChild(card);
     });
 }
 
-// --- iPad 触摸逻辑核心 ---
+// --- iPad 触摸逻辑 ---
 function addTouchLogic(card, itemId) {
     let startX, startY;
     let initialLeft, initialTop;
     
     card.addEventListener('touchstart', function(e) {
-        if(e.touches.length > 1) return; // 忽略多指
+        if(e.touches.length > 1) return; 
         const touch = e.touches[0];
         startX = touch.clientX;
         startY = touch.clientY;
         
-        // 记录原始位置，并将卡片改为 Fixed 定位以实现跟随
         const rect = card.getBoundingClientRect();
         initialLeft = rect.left;
         initialTop = rect.top;
         
-        // 视觉反馈
         card.style.position = 'fixed';
         card.style.left = initialLeft + 'px';
         card.style.top = initialTop + 'px';
-        card.style.width = rect.width + 'px'; // 保持宽度防止变形
+        card.style.width = rect.width + 'px'; 
         card.classList.add('dragging');
         
-        // 音频解锁
         if (audioCtx.state === 'suspended') audioCtx.resume();
     }, { passive: false });
 
     card.addEventListener('touchmove', function(e) {
-        e.preventDefault(); // 防止滚动
+        e.preventDefault(); 
         const touch = e.touches[0];
         const deltaX = touch.clientX - startX;
         const deltaY = touch.clientY - startY;
@@ -809,7 +838,6 @@ function addTouchLogic(card, itemId) {
         card.style.left = (initialLeft + deltaX) + 'px';
         card.style.top = (initialTop + deltaY) + 'px';
         
-        // 高亮检测 (Touch没有dragleave/enter，需要手动计算)
         checkTouchHover(touch.clientX, touch.clientY);
     }, { passive: false });
 
@@ -817,29 +845,24 @@ function addTouchLogic(card, itemId) {
         const touch = e.changedTouches[0];
         card.classList.remove('dragging');
         
-        // 隐藏自身以检测下方的元素
         card.style.display = 'none';
         let elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
         card.style.display = 'flex';
         
         const dropTarget = elemBelow ? elemBelow.closest('.drop-target') : null;
         
-        // 恢复样式，准备判断逻辑
         card.style.position = '';
         card.style.left = '';
         card.style.top = '';
         card.style.width = '';
         
-        // 清除所有高亮
         document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('hovered'));
 
         if (dropTarget && !dropTarget.classList.contains('filled')) {
             if (dropTarget.dataset.match === itemId) {
-                // ✅ 正确：模拟 handleDrop
                 playSound('success');
                 finishDrop(dropTarget, card);
             } else {
-                // ❌ 错误
                 playSound('error');
                 mistakeCount++;
                 dropTarget.classList.add('wrong-shake');
@@ -850,8 +873,6 @@ function addTouchLogic(card, itemId) {
 }
 
 function checkTouchHover(x, y) {
-    // 性能优化：不用每次move都查DOM，但为了简单起见直接查
-    // 临时隐藏拖拽物，否则 elementFromPoint 永远拿到的是卡片自己
     const dragged = document.querySelector('.word-card.dragging');
     if(dragged) dragged.style.visibility = 'hidden';
     
@@ -859,7 +880,6 @@ function checkTouchHover(x, y) {
     
     if(dragged) dragged.style.visibility = 'visible';
     
-    // 清除旧高亮
     document.querySelectorAll('.drop-target.hovered').forEach(el => el.classList.remove('hovered'));
     
     if(elem) {
@@ -870,7 +890,6 @@ function checkTouchHover(x, y) {
     }
 }
 
-// 提取成功的逻辑供 Touch 和 Mouse 共用
 function finishDrop(target, originalCard) {
     target.classList.add('filled');
     target.classList.remove('hint-target');
@@ -894,12 +913,12 @@ function finishDrop(target, originalCard) {
     originalCard.remove();
     
     const textToRead = customSpeak || wordText;
-    setTimeout(() => { speakWord(textToRead); }, 1000);
+    // 🔴 关键修复：移除 setTimeout 延时，在用户交互链条中立即播放
+    speakWord(textToRead); 
 
     checkWin();
 }
 
-// 鼠标拖拽逻辑保持不变，调用 finishDrop
 function handleDrop(e) {
     e.preventDefault();
     const target = e.currentTarget;
@@ -924,15 +943,22 @@ function handleDrop(e) {
 function useHint() {
     const emptyTargets = Array.from(document.querySelectorAll('.drop-target:not(.filled)'));
     if (emptyTargets.length === 0) return;
+    
     document.querySelectorAll('.hint-target').forEach(el => el.classList.remove('hint-target'));
+
     const target = emptyTargets[Math.floor(Math.random() * emptyTargets.length)];
     const matchId = target.dataset.match;
     const card = document.querySelector(`.word-bank .word-card[data-id="${matchId}"]`);
+    
     if (target && card) {
         hintUsed = true;
         target.classList.add('hint-target');
         card.classList.add('hint-target');
-        setTimeout(() => { target.classList.remove('hint-target'); card.classList.remove('hint-target'); }, 2000);
+        
+        setTimeout(() => {
+            target.classList.remove('hint-target');
+            card.classList.remove('hint-target');
+        }, 2000);
     }
 }
 
@@ -940,14 +966,22 @@ function checkWin() {
     const data = levels[currentLevelKey];
     const totalItems = data.items.length;
     const filledItems = document.querySelectorAll('.drop-target.filled').length;
+
     if (filledItems === totalItems) {
-        setTimeout(() => { playSound('win'); showWinModal(); }, 2500); 
+        setTimeout(() => {
+            playSound('win');
+            showWinModal();
+        }, 2500); 
     }
 }
 
 function showWinModal() {
     const modal = document.getElementById('win-modal');
-    const stars = [document.getElementById('star-1'), document.getElementById('star-2'), document.getElementById('star-3')];
+    const stars = [
+        document.getElementById('star-1'),
+        document.getElementById('star-2'),
+        document.getElementById('star-3')
+    ];
     const heading = document.getElementById('modal-heading');
     const msg = document.getElementById('modal-msg');
     
@@ -968,6 +1002,7 @@ function showWinModal() {
 
     const listContainer = document.getElementById('level-word-list');
     listContainer.innerHTML = ''; 
+    
     const currentData = levels[currentLevelKey];
     if (currentData && currentData.items) {
         currentData.items.forEach(item => {
@@ -981,7 +1016,9 @@ function showWinModal() {
 
     modal.style.display = 'flex';
     for(let i=0; i<starCount; i++) {
-        setTimeout(() => { stars[i].classList.add('active'); }, i * 200 + 300);
+        setTimeout(() => {
+            stars[i].classList.add('active');
+        }, i * 200 + 300);
     }
 }
 
@@ -989,6 +1026,7 @@ function nextLevel() {
     document.getElementById('win-modal').style.display = 'none';
     let currentIndex = levelOrder.indexOf(currentLevelKey);
     let nextIndex = currentIndex + 1;
+    
     if (nextIndex >= levelOrder.length) {
         alert("恭喜你，通关了所有场景！");
         goHome();
